@@ -50,67 +50,6 @@ class Model(object):
         a_2, _ = torch.max(a_1, dim=2, keepdim=True)
         a_3, _ = torch.max(a_2, dim=3, keepdim=True)
         return a_3
-    def train(self):
-
-        loss_now = 100000
-        auc_now = 0.
-        ap_now = 0.
-        patience = 20
-        no_update_num = 0
-        for epoch in range(self.opt.iter, self.opt.niter):
-            self.model.Feature_extractor.eval()
-            self.model.Roncon_model.train(True)
-            self.model.to(self.device)
-            loss_total = 0.
-            count = 0
-            for index, (x, _, _, _, arti_x, arti_mask, _) in enumerate(tqdm(self.trainloader, ncols=80)):
-                bs = x.shape[0]
-                x = x.to(self.device)
-                # ref_x = get_pos_sample(self.opt.referenc_img_file, self.device, bs)
-                # arti_x = arti_x.to(self.device)
-                # arti_mask = F.interpolate(arti_mask, (64, 64))
-                # arti_mask = arti_mask.to(self.device)
-                # arti_mask = F.max_pool2d(arti_mask, self.opt.k, self.opt.k)
-                # print(arti_mask)
-
-                deep_feature, _, recon_feature, loss, _, _ = self.model(x, 'train')
-                self.loss_scaler(loss, self.optimizer_g, parameters=self.model.Roncon_model.parameters(), update_grad=(index + 1) % 1 == 0)
-                loss_total += loss.item()
-                count += 1
-
-            loss_total = loss_total / count
-            print('the {} epoch is done   loss:{}'.format(epoch + 1, loss_total))
-            if (epoch + 1)%10  == 0:
-                 # self.test_2()
-                x1, x2, x3, x4 = self.train_test()
-                auc_roc = x1+x2
-                if auc_roc > auc_now:
-                    # no_update_num = 0
-                    auc_now = auc_roc
-                    ap_now = x3 + x4
-                    class_rocauc[self.opt.class_name] = (x1, x2, x3, x4)
-                    print('save model')
-                    weight_dir = self.ckpt_root
-                    os.makedirs(weight_dir, exist_ok=True)
-                    torch.save({'epoch': epoch + 1, 'state_dict': self.model.state_dict()},
-                               f'%s/{self.opt.model_name}.pth' % (weight_dir))
-                elif auc_roc == auc_now:
-                    if x3+x4>ap_now:
-                        ap_now = x3 + x4
-                        class_rocauc[self.opt.class_name] = (x1, x2, x3, x4)
-                        print('save model')
-                        weight_dir = self.ckpt_root
-                        os.makedirs(weight_dir, exist_ok=True)
-                        torch.save({'epoch': epoch + 1, 'state_dict': self.model.state_dict()},
-                                   f'%s/{self.opt.model_name}.pth' % (weight_dir))
-
-                # else:
-                #     no_update_num += 1
-                #     print('no_update_num:{}'.format(no_update_num))
-            # if no_update_num > patience:
-            #     break
-
-
 
     def cal_auc(self, score_list, score_map_list, test_y_list, test_mask_list):
         flatten_y_list = np.array(test_y_list).ravel()
@@ -153,6 +92,8 @@ class Model(object):
         feature_map_list = [torch.mean(i.clone(), dim=1).squeeze(0).cpu().detach().numpy() for i in feature_map_list]
         return feature_map_list
 
+
+
     def test(self):
         test_y_list = []
         test_mask_list = []
@@ -160,59 +101,6 @@ class Model(object):
         score_map_list = []
 
         for idx, (x, y, mask, name) in enumerate(tqdm(self.testloader, ncols=80)):
-            test_y_list.extend(y.detach().cpu().numpy())
-            test_mask_list.extend(mask.detach().cpu().numpy())
-            self.model.eval()
-            self.model.to(self.device)
-            x = x.to(self.device)
-            mask = mask.to(self.device)
-            mask_cpu = mask.cpu().detach().numpy()[0, :, :, :].transpose((1, 2, 0))
-            # ref_x = get_pos_sample(self.opt.referenc_img_file, self.device, 1)
-            deep_feature, ref_feature, recon_feature, _, cos_sim, bin_mask = self.model(x, 'test')
-            # vis_feature_token, vis_cluster_index = cluster_vis
-            # vis_feature_token = vis_feature_token.squeeze(0).cpu().detach().numpy()  # [Nc+N, C]
-            # vis_cluster_index = vis_cluster_index.squeeze(0).cpu().detach().numpy()  # (N)
-            cos_sim = cos_sim.view((1, int(64/opt.k),  int(64/opt.k)))
-            cos_sim_cpu = cos_sim.cpu().detach().numpy().transpose((1, 2, 0))
-            cos_sim_ = cv2.resize(cos_sim_cpu, (256, 256))
-            # cos_sim_detect = cv2.resize(cos_sim_cpu, (256, 256), interpolation=cv2.INTER_AREA)
-            bin_mask = bin_mask.view((1,  int(64/opt.k),  int(64/opt.k)))
-            bin_mask_cpu = bin_mask.cpu().detach().numpy().transpose((1, 2, 0))
-            feature_map_vis_list = self.feature_map_vis([deep_feature, ref_feature, recon_feature])
-            dis_amap, dir_amap = self.model.a_map(deep_feature, recon_feature)
-            dis_amap = gaussian_filter(dis_amap, sigma=4)
-            dir_amap = gaussian_filter(dir_amap, sigma=4)
-            # ssim_amap = gaussian_filter(ssim_amap, sigma=4)
-            # print(type(name0]))
-            name_list = name[0].split(r'!')
-            # print(name_list)
-            category, img_name = name_list[-2], name_list[-1]
-            amap = dir_amap*dis_amap*cos_sim_
-            # amap = dir_amap + dis_amap
-            self.save_img([x, *feature_map_vis_list[1:], cos_sim_cpu, bin_mask_cpu,  dis_amap, dir_amap, amap, mask_cpu], os.path.join(self.vis_root, category), img_name)
-
-
-            score_list.extend(np.array(np.std(amap)).reshape(1))
-            score_map_list.extend(amap.reshape((1, 1, 256, 256)))
-
-
-        image_level_ROCAUC, pixel_level_ROCAUC, image_level_AP, pixel_level_AP= self.cal_auc(score_list, score_map_list, test_y_list, test_mask_list)
-        # F1_score = self.F1_score(F1_score_map_list, test_mask_list)
-        print('image_auc_roc: {} '.format(image_level_ROCAUC),
-              'pixel_auc_roc: {} '.format(pixel_level_ROCAUC),
-              'image_AP: {}'.format(image_level_AP),
-              'pixel_AP: {}'.format(pixel_level_AP)
-             )
-        class_rocauc[self.opt.class_name] = (image_level_ROCAUC, pixel_level_ROCAUC, image_level_AP, pixel_level_AP)
-        return image_level_ROCAUC, pixel_level_ROCAUC, image_level_AP, pixel_level_AP
-
-    def train_test(self):
-        test_y_list = []
-        test_mask_list = []
-        score_list = []
-        score_map_list = []
-
-        for idx, (x, y, mask, name, _, _, _) in enumerate(tqdm(self.testloader, ncols=80)):
             test_y_list.extend(y.detach().cpu().numpy())
             test_mask_list.extend(mask.detach().cpu().numpy())
             self.model.eval()
@@ -295,94 +183,6 @@ class Model(object):
         plt.savefig(os.path.join(save_root, idx_name))
         plt.close()
 
-    def save_img(self, img_list, save_root, idx_name):
-        # save_root = save_root+'test'
-        save_root = os.path.join(save_root, idx_name[:3])
-        os.makedirs(save_root, exist_ok=True)
-        input_frame = denormalize(img_list[0].clone().squeeze(0).cpu().detach().numpy())
-        cv2_input = np.array(input_frame/255., dtype=np.float32)
-        # print(img_list[5].shape)
-        plt.imsave(os.path.join(save_root, '0.png'), cv2_input)
-        plt.imsave(os.path.join(save_root, '1.png'), img_list[1])
-        plt.imsave(os.path.join(save_root, '2.png'), img_list[2])
-        plt.imshow(cv2_input)
-        plt.imshow(cv2.resize(img_list[3], (256, 256), interpolation=cv2.INTER_AREA), alpha=0.5, cmap='jet')
-        plt.savefig(os.path.join(save_root, '3.png'))
-        plt.close()
-        # plt.imsave(os.path.join(save_root, f'{idx}_3.png'), img_list[3], cmap='jet')
-        plt.imsave(os.path.join(save_root, '4.png'), cv2.resize(img_list[4], (256, 256), interpolation=cv2.INTER_AREA).reshape((256, 256, 1))*cv2_input)
-        plt.imsave(os.path.join(save_root, '5.png'), img_list[5], cmap='jet')
-        plt.imsave(os.path.join(save_root, '6.png'), img_list[6], cmap='jet')
-        plt.imsave(os.path.join(save_root, 'attention.png'), cv2.resize(img_list[3], (256, 256)), cmap='jet')
-        plt.imsave(os.path.join(save_root, '7.png'), img_list[7], cmap='jet')
-        plt.imsave(os.path.join(save_root, '8.png'), cv2.cvtColor(img_list[8], cv2.COLOR_GRAY2RGB), cmap='gray')
-        vis_feature, vis_cluster_index = img_list[9], img_list[10]
-        tsne = manifold.TSNE(n_components=2, init='pca', random_state=501)
-        vis_feature_tsne = tsne.fit_transform(vis_feature)
-        x_min, x_max = vis_feature_tsne.min(0), vis_feature_tsne.max(0)
-        vis_feature_tsne_norm = (vis_feature_tsne - x_min) / (x_max - x_min)
-        center_clu = vis_feature_tsne_norm[:self.opt.center_num]
-        feature = vis_feature_tsne_norm[self.opt.center_num:]
-        # print(feature.shape)
-        # colors = tuple(
-        #     [(np.random.random(), np.random.random(), np.random.random()) for i in range(self.opt.center_num)])
-        # colors = [rgb2hex(x) for x in colors]  # from  matplotlib.colors import  rgb2hex
-        import colorsys
-        import random
-
-        def get_n_hls_colors(num):
-            hls_colors = []
-            i = 0
-            step = 360.0 / num
-            while i < 360:
-                h = i
-                s = 90 + random.random() * 10
-                l = 50 + random.random() * 10
-                _hlsc = [h / 360.0, l / 100.0, s / 100.0]
-                hls_colors.append(_hlsc)
-                i += step
-
-            return hls_colors
-
-        def ncolors(num):
-            rgb_colors = []
-            if num < 1:
-                return rgb_colors
-            hls_colors = get_n_hls_colors(num)
-            for hlsc in hls_colors:
-                _r, _g, _b = colorsys.hls_to_rgb(hlsc[0], hlsc[1], hlsc[2])
-                r, g, b = [int(x * 255.0) for x in (_r, _g, _b)]
-                rgb_colors.append([r, g, b])
-
-            return rgb_colors
-
-        def color(value):
-            digit = list(map(str, range(10))) + list("ABCDEF")
-            if isinstance(value, tuple):
-                string = '#'
-                for i in value:
-                    a1 = i // 16
-                    a2 = i % 16
-                    string += digit[a1] + digit[a2]
-                return string
-            elif isinstance(value, str):
-                a1 = digit.index(value[1]) * 16 + digit.index(value[2])
-                a2 = digit.index(value[3]) * 16 + digit.index(value[4])
-                a3 = digit.index(value[5]) * 16 + digit.index(value[6])
-                return (a1, a2, a3)
-        colors = list(map(lambda x: color(tuple(x)), ncolors(self.opt.center_num)))
-
-        for i in range(self.opt.center_num):
-            plt.scatter(center_clu[i][0], center_clu[i][1], s=50, c=colors[i], marker="*")
-            # print(feature[vis_cluster_index==i].shape)
-            # print(feature[vis_cluster_index==i])
-            if len(feature[vis_cluster_index==i])!=0 :
-                plt.scatter(feature[vis_cluster_index == i][:, 0], feature[vis_cluster_index == i][:, 1], s=50, c=colors[i],
-                        marker="x")
-        plt.savefig(os.path.join(save_root, '9.png'))
-        plt.close()
-        # plt.imsave(os.path.join(save_root, '8.png'), img_list[8], cmap='gray')
-        # plt.imsave(os.path.join(save_root, f'{idx}_9.png'), cv2.cvtColor(img_list[9], cv2.COLOR_GRAY2RGB), cmap='gray')
 
     def tensor_to_np_cpu(self, tensor):
         x_cpu = tensor.squeeze(0).data.cpu().numpy()
