@@ -6,7 +6,7 @@ Please download MVTecAD dataset from [MVTecAD dataset](https://www.mvtec.com/de/
 # Download the Weights for the MVTec AD dataset
 | Class      | Pre-trained Checkpoint | 
 |------------|-------------------------|
-| Bottle | [download](https://github.com/luow23/AMI-Net/releases/pth/) |
+| Bottle | [download](https://github.com/luow23/AMI-Net/releases/) |
 | Cable  | [download](https://github.com/your-username/your-repo/releases/download/v1.0/ViT-Large.pth) |
 | Capsule | [download](https://github.com/your-username/your-repo/releases/download/v1.0/ViT-Huge.pth) |
 | Carpet | [download](https://github.com/your-username/your-repo/releases/download/v1.0/ViT-Huge.pth) |
