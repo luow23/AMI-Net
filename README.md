@@ -5,7 +5,7 @@ PyTorch implementation and for TASE2024 paper, AMI-Net: Adaptive Mask Inpainting
 | Class      | Pre-trained Checkpoint |  Metric (I-AUROC,P-AUROC,I-AP,P-AP)    |
 |------------|-------------------------|--------|
 | Bottle   | [download](https://drive.google.com/file/d/1B0vZxRfQ21pG17K3iLUt7ADnziFHAKzK/view?usp=drive_link) | 8cad7c |
-| ViT-Large  | [download](https://github.com/your-username/your-repo/releases/download/v1.0/ViT-Large.pth) | b8b06e |
+| Cable  | [download](https://github.com/your-username/your-repo/releases/download/v1.0/ViT-Large.pth) | b8b06e |
 | ViT-Huge   | [download](https://github.com/your-username/your-repo/releases/download/v1.0/ViT-Huge.pth) | 9bdbb0 |
 
 # Download Datasets
