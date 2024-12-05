@@ -4,7 +4,7 @@ PyTorch implementation and for TASE2024 paper, AMI-Net: Adaptive Mask Inpainting
 # Download Weights of MVTec AD Dataset
 | Class      | Pre-trained Checkpoint |  Metric (I-AUROC,P-AUROC,I-AP,P-AP)    |
 |------------|-------------------------|--------|
-| Bottle   | [download](https://drive.google.com/drive/folders/1hReDmbzSDeKSjUgKVfNvwS7eiLuZvqlO?usp=drive_link) | (1.0, 0.988, 1.0, 0.792) |
+| Bottle   | [download](https://drive.google.com/drive/folders/1hReDmbzSDeKSjUgKVfNvwS7eiLuZvqlO?dmr=1&ec=wgc-drive-hero-goto) | (1.0, 0.988, 1.0, 0.792) |
 | Cable   | [download](https://drive.google.com/drive/folders/1BzQ6dJQoGGnh672Z_1nULDXDfu4MjnlR?usp=drive_link) | (0.996, 0.986, 0.998, 0.685) |
 | Capsule   | [download](https://drive.google.com/drive/folders/19E5Sb6v4L_rCL-8wprVJcPSPj_-u3D6g?usp=drive_link) | (0.984, 0.989, 0.997, 0.45) |
 | Carpet   | [download](https://drive.google.com/drive/folders/1H4WLy7Qx_8-wcUmPDTJoBiC-fzBHee4w?usp=drive_link) | (0.998, 0.993, 0.999, 0.69) |
