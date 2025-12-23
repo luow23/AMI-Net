@@ -79,15 +79,10 @@ class Model(object):
             self.model.to(self.device)
             loss_total = 0.
             count = 0
-            for index, (x, _, _, _, arti_x, arti_mask, _) in enumerate(tqdm(self.trainloader, ncols=80)):
+            for index, (x, _, _, _) in enumerate(tqdm(self.trainloader, ncols=80)):
                 bs = x.shape[0]
                 x = x.to(self.device)
-                # ref_x = get_pos_sample(self.opt.referenc_img_file, self.device, bs)
-                # arti_x = arti_x.to(self.device)
-                # arti_mask = F.interpolate(arti_mask, (64, 64))
-                # arti_mask = arti_mask.to(self.device)
-                # arti_mask = F.max_pool2d(arti_mask, self.opt.k, self.opt.k)
-                # print(arti_mask)
+
 
                 deep_feature, _, recon_feature, loss, _, _ = self.model(x, 'train')
                 self.loss_scaler(loss, self.optimizer_g, parameters=self.model.Roncon_model.parameters(), update_grad=(index + 1) % 1 == 0)
@@ -175,7 +170,7 @@ class Model(object):
         score_list = []
         score_map_list = []
 
-        for idx, (x, y, mask, name, _, _, _) in enumerate(tqdm(self.testloader, ncols=80)):
+        for idx, (x, y, mask, name) in enumerate(tqdm(self.testloader, ncols=80)):
             test_y_list.extend(y.detach().cpu().numpy())
             test_mask_list.extend(mask.detach().cpu().numpy())
             self.model.eval()
@@ -224,7 +219,7 @@ class Model(object):
         score_list = []
         score_map_list = []
 
-        for idx, (x, y, mask, name, _, _, _) in enumerate(tqdm(self.testloader, ncols=80)):
+        for idx, (x, y, mask, name) in enumerate(tqdm(self.testloader, ncols=80)):
             test_y_list.extend(y.detach().cpu().numpy())
             test_mask_list.extend(mask.detach().cpu().numpy())
             self.model.eval()
@@ -373,3 +368,4 @@ if __name__ == '__main__':
     mean_pixel_ap = np.mean(np.array(pixel_ap))
 
     print(round(mean_img_roc, 3), round(mean_pixel_roc, 3), round(mean_img_ap, 3), round(mean_pixel_ap, 3))
+
